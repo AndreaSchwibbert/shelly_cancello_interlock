@@ -1,7 +1,7 @@
 /**
  * Copyright 2025 Andrea Schwibbert
  * Script: controlloCancello
- * Versione: 1.1
+ * Versione: 1.2
  * Descrizione: Gestione interblocco + finecorsa in modalità "Interruttore Detached"
  * Compatibile con: Shelly Gen2/Gen3 (firmware 0.9+)
  */
@@ -12,12 +12,12 @@ let CONFIG = {
   RELAY_CHIUDI: 0,         // switch:0 = chiusura  
   INPUT_FINE_APRI: 1,      // input:1 = finecorsa apertura
   INPUT_FINE_CHIUDI: 0,    // input:0 = finecorsa chiusura
-  DEBUG: true              // Abilita/disabilita messaggi di debug
+  DEBUG: false              // Abilita/disabilita messaggi di debug
 };
 
-// Stato dei finecorsa
-let statoFinecorsaApri = false;
-let statoFinecorsaChiudi = false;
+// Stato dei finecorsa - verranno inizializzati con i valori reali durante l'inizializzazione
+let statoFinecorsaApri = null;  // null indica "non ancora letto"
+let statoFinecorsaChiudi = null;  // null indica "non ancora letto"
 
 // Funzione helper per logging
 function debug(message) {
@@ -97,6 +97,12 @@ Shelly.addStatusHandler(function (e) {
 
 // Gestione interblocco e blocco attivazione se finecorsa è già attivo
 Shelly.addStatusHandler(function (e) {
+  // Attendi che i finecorsa siano stati letti prima di gestire gli eventi
+  if (statoFinecorsaApri === null || statoFinecorsaChiudi === null) {
+    debug("Stato finecorsa non ancora inizializzato, ignoro evento");
+    return;
+  }
+  
   if (!e.delta || e.delta.output !== true) {
     return; // Esci se non è un'attivazione
   }
@@ -145,12 +151,34 @@ function inizializza() {
   // Configura modalità detached (decommenta se necessario)
   // configuraModalitaDetached();
   
+  let finecorsaLetti = 0;
+  let totaleDaLeggere = 2;
+  
+  // Funzione chiamata quando entrambi i finecorsa sono stati letti
+  function verificaInizializzazioneCompletata() {
+    finecorsaLetti++;
+    if (finecorsaLetti === totaleDaLeggere) {
+      debug("=== INIZIALIZZAZIONE COMPLETATA ===");
+      debug("Finecorsa apertura: " + statoStringa(statoFinecorsaApri));
+      debug("Finecorsa chiusura: " + statoStringa(statoFinecorsaChiudi));
+      
+      // Verifica condizioni anomale all'avvio
+      if (statoFinecorsaApri && statoFinecorsaChiudi) {
+        debug("ATTENZIONE: Entrambi i finecorsa sono attivi! Verificare il cablaggio.");
+      }
+      
+      debug("Script pronto e operativo!");
+    }
+  }
+  
   // Lettura stato iniziale finecorsa apertura
   Shelly.call("Input.GetStatus", { 
     id: CONFIG.INPUT_FINE_APRI 
   }, function (res, err) {
     if (err) {
       debug("Errore lettura finecorsa apertura: " + JSON.stringify(err));
+      statoFinecorsaApri = false; // Default sicuro in caso di errore
+      verificaInizializzazioneCompletata();
       return;
     }
     statoFinecorsaApri = res.state === true;
@@ -158,11 +186,13 @@ function inizializza() {
     
     // Se il finecorsa è già attivo all'avvio, spegni il relè corrispondente
     if (statoFinecorsaApri) {
+      debug("Finecorsa apertura già attivo - spengo relè apertura per sicurezza");
       Shelly.call("Switch.set", { 
         id: CONFIG.RELAY_APRI, 
         on: false 
       });
     }
+    verificaInizializzazioneCompletata();
   });
   
   // Lettura stato iniziale finecorsa chiusura
@@ -171,6 +201,8 @@ function inizializza() {
   }, function (res, err) {
     if (err) {
       debug("Errore lettura finecorsa chiusura: " + JSON.stringify(err));
+      statoFinecorsaChiudi = false; // Default sicuro in caso di errore
+      verificaInizializzazioneCompletata();
       return;
     }
     statoFinecorsaChiudi = res.state === true;
@@ -178,14 +210,14 @@ function inizializza() {
     
     // Se il finecorsa è già attivo all'avvio, spegni il relè corrispondente
     if (statoFinecorsaChiudi) {
+      debug("Finecorsa chiusura già attivo - spengo relè chiusura per sicurezza");
       Shelly.call("Switch.set", { 
         id: CONFIG.RELAY_CHIUDI, 
         on: false 
       });
     }
+    verificaInizializzazioneCompletata();
   });
-  
-  debug("Script avviato con successo!");
 }
 
 // Avvia l'inizializzazione
