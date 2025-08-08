@@ -1,42 +1,40 @@
-# shelly_cancello_interlock
-Script per Shelly 2PM Gen3 che gestisce un cancello motorizzato con finecorsa e interblocco, in modalità “interruttore detached”.
+# Shelly Cancello Interlock
 
-# Controllo Cancello con Shelly 2PM Gen3
+Script per Shelly Gen2/Gen3 che gestisce un cancello motorizzato con finecorsa e interblocco tra relè.
 
-Script per Shelly Gen2/Gen3 (firmware 0.9+) che controlla un cancello motorizzato a doppia uscita (apri/chiudi) utilizzando i finecorsa e l’interblocco tra i relè. Supporta la modalità "interruttore detached" e previene attivazioni indesiderate.
+## 🎯 Funzionalità
 
-## Funzionalità
+- **Interblocco automatico**: impedisce l'attivazione simultanea di apertura e chiusura
+- **Gestione finecorsa**: arresto automatico del motore quando raggiunge il limite
+- **Protezione anti-danneggiamento**: blocca il comando se il finecorsa è già attivo
+- **Debug configurabile**: log dettagliati attivabili per diagnostica
 
-- Interblocco automatico: apertura e chiusura non possono essere attive contemporaneamente
-- Stop automatico ai finecorsa
-- Blocco attivazione se il finecorsa è già attivo
-- Compatibile con input configurati come "interruttore detached"
-- Debug logging attivabile/disattivabile
-- Configurazione centralizzata
+## 📋 Requisiti
 
-## Requisiti
+- **Dispositivo**: Shelly 2PM, Plus 2PM o Pro 2PM
+- **Firmware**: ≥ 0.9.0
+- **Collegamenti**:
+  - Switch 0: Motore chiusura
+  - Switch 1: Motore apertura
+  - Input 0: Finecorsa chiusura
+  - Input 1: Finecorsa apertura
 
-- Dispositivo: Shelly 2PM Gen3
-- Firmware: versione 0.9 o superiore
-- Script engine: abilitato
+## ⚙️ Installazione
 
-## Installazione
+1. Accedi all'interfaccia web dello Shelly
+2. Vai in **Scripts** → **Create Script**
+3. Incolla il codice di `controlloCancello.js`
+4. Salva e attiva lo script
 
-1. Accedi all'interfaccia web del tuo Shelly.
-2. Vai nella sezione **Scripts** e crea uno script nuovo.
-3. Incolla il contenuto dello script `controlloCancello.js`.
-4. Salva e attiva lo script.
-5. Imposta **entrambi gli switch in modalità "detached"** se vuoi comandarli solo da script o automazioni esterne.
+## 🔧 Configurazione
 
-## Configurazione
+Modifica i parametri nel CONFIG se necessario:
 
-Puoi modificare la configurazione all'inizio dello script:
-
-```js
+```javascript
 let CONFIG = {
-  RELAY_APRI: 1,
-  RELAY_CHIUDI: 0,
-  INPUT_FINE_APRI: 1,
-  INPUT_FINE_CHIUDI: 0,
-  DEBUG: true
+  RELAY_APRI: 1,        // Relè apertura (default: 1)
+  RELAY_CHIUDI: 0,      // Relè chiusura (default: 0)
+  INPUT_FINE_APRI: 1,   // Input finecorsa apertura
+  INPUT_FINE_CHIUDI: 0, // Input finecorsa chiusura
+  DEBUG: false          // Abilita log di debug
 };
